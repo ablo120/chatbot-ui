@@ -1,6 +1,6 @@
 import { Message } from '@/types/chat';
 import { OpenAIModel } from '@/types/openai';
-
+import { Humanloop } from "humanloop"
 import { AZURE_DEPLOYMENT_ID, OPENAI_API_HOST, OPENAI_API_TYPE, OPENAI_API_VERSION, OPENAI_ORGANIZATION } from '../app/const';
 
 import {
@@ -8,6 +8,8 @@ import {
   ReconnectInterval,
   createParser,
 } from 'eventsource-parser';
+import { debug } from 'console';
+import { measureMemory } from 'vm';
 
 export class OpenAIError extends Error {
   type: string;
@@ -34,40 +36,61 @@ export const OpenAIStream = async (
   if (OPENAI_API_TYPE === 'azure') {
     url = `${OPENAI_API_HOST}/openai/deployments/${AZURE_DEPLOYMENT_ID}/chat/completions?api-version=${OPENAI_API_VERSION}`;
   }
-  const res = await fetch(url, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(OPENAI_API_TYPE === 'openai' && {
-        Authorization: `Bearer ${key ? key : process.env.OPENAI_API_KEY}`
-      }),
-      ...(OPENAI_API_TYPE === 'azure' && {
-        'api-key': `${key ? key : process.env.OPENAI_API_KEY}`
-      }),
-      ...((OPENAI_API_TYPE === 'openai' && OPENAI_ORGANIZATION) && {
-        'OpenAI-Organization': OPENAI_ORGANIZATION,
-      }),
+  //'hl_sk_cbc8c935aeed445aabfb9abbf99ec63d897c742d454303b9',
+
+  const humanloop = new Humanloop({
+    apiKey: 'hl_sk_904d85db5194ff1e2fef87b39a6fbe58888ac1ecdab60d04',
+  })
+
+  console.log("-------","完成 humanloop的new")
+  const generateResponse = await humanloop.generate({
+    project: "旅行助手",
+    inputs: {
+      "text": "chat with me"
     },
-    method: 'POST',
-    body: JSON.stringify({
-      ...(OPENAI_API_TYPE === 'openai' && {model: model.id}),
-      messages: [
-        {
-          role: 'system',
-          content: systemPrompt,
-        },
-        ...messages,
-      ],
-      max_tokens: 1000,
-      temperature: temperature,
-      stream: true,
-    }),
-  });
+    provider_api_keys: {
+      "openai": "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"
+    },
+  })
+ 
+  console.log("-------",generateResponse)
+  // const res = await fetch(url, {
+  //   headers: {
+  //     'Content-Type': 'application/json',
+  //     ...(OPENAI_API_TYPE === 'openai' && {
+  //       Authorization: `Bearer ${key ? key : process.env.OPENAI_API_KEY}`
+  //     }),
+  //     ...(OPENAI_API_TYPE === 'azure' && {
+  //       'api-key': `${key ? key : process.env.OPENAI_API_KEY}`
+  //     }),
+  //     ...((OPENAI_API_TYPE === 'openai' && OPENAI_ORGANIZATION) && {
+  //       'OpenAI-Organization': OPENAI_ORGANIZATION,
+  //     }),
+  //   },
+  //   method: 'POST',
+  //   body: JSON.stringify({
+  //     ...(OPENAI_API_TYPE === 'openai' && {model: model.id}),
+  //     messages: [
+  //       {
+  //         role: 'system',
+  //         content: systemPrompt,
+  //       },
+  //       ...messages,
+  //     ],
+  //     max_tokens: 1000,
+  //     temperature: temperature,
+  //     stream: true,
+  //   }),
+  // });
+  console.log('---------------')
 
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
 
   if (res.status !== 200) {
     const result = await res.json();
+    
+     // Make this code easier to read, including by adding comments, renaming variables, and/or reorganizing the code.
     if (result.error) {
       throw new OpenAIError(
         result.error.message,
