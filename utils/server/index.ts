@@ -36,60 +36,66 @@ export const OpenAIStream = async (
   if (OPENAI_API_TYPE === 'azure') {
     url = `${OPENAI_API_HOST}/openai/deployments/${AZURE_DEPLOYMENT_ID}/chat/completions?api-version=${OPENAI_API_VERSION}`;
   }
-  //'hl_sk_cbc8c935aeed445aabfb9abbf99ec63d897c742d454303b9',
+  //gpt-3.5-turbo
 
-  const humanloop = new Humanloop({
-    apiKey: 'hl_sk_904d85db5194ff1e2fef87b39a6fbe58888ac1ecdab60d04',
-  })
+  console.log("-elton:",messages[messages.length-1].content)
 
-  console.log("-------","完成 humanloop的new")
-  const generateResponse = await humanloop.generate({
-    project: "旅行助手",
-    inputs: {
-      "text": "chat with me"
+  const options = {
+    method: 'POST',
+    headers: {
+      accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-API-KEY': 'hl_sk_904d85db5194ff1e2fef87b39a6fbe58888ac1ecdab60d04',
     },
-    provider_api_keys: {
-      "openai": "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"
+    body: JSON.stringify({
+      "project": "旅行助手",
+      "inputs": {
+      "text": messages[messages.length-1].content
     },
-  })
- 
-  console.log("-------",generateResponse)
-  // const res = await fetch(url, {
-  //   headers: {
-  //     'Content-Type': 'application/json',
-  //     ...(OPENAI_API_TYPE === 'openai' && {
-  //       Authorization: `Bearer ${key ? key : process.env.OPENAI_API_KEY}`
-  //     }),
-  //     ...(OPENAI_API_TYPE === 'azure' && {
-  //       'api-key': `${key ? key : process.env.OPENAI_API_KEY}`
-  //     }),
-  //     ...((OPENAI_API_TYPE === 'openai' && OPENAI_ORGANIZATION) && {
-  //       'OpenAI-Organization': OPENAI_ORGANIZATION,
-  //     }),
-  //   },
-  //   method: 'POST',
-  //   body: JSON.stringify({
-  //     ...(OPENAI_API_TYPE === 'openai' && {model: model.id}),
-  //     messages: [
-  //       {
-  //         role: 'system',
-  //         content: systemPrompt,
-  //       },
-  //       ...messages,
-  //     ],
-  //     max_tokens: 1000,
-  //     temperature: temperature,
-  //     stream: true,
-  //   }),
-  // });
-  console.log('---------------')
+      "provider_api_keys": {
+      "openai": "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"
+    }
+    })
+  };
+  let res = await fetch('https://api.humanloop.com/v3/generate', options)
+  let data = await res.json()
+
+//   const res = await fetch(url, {
+//     headers: {
+//       'Content-Type': 'application/json',
+//       ...(OPENAI_API_TYPE === 'openai' && {
+//         Authorization: `Bearer ${key ? key : process.env.OPENAI_API_KEY}`
+//       }),
+//       ...(OPENAI_API_TYPE === 'azure' && {
+//         'api-key': `${key ? key : process.env.OPENAI_API_KEY}`
+//       }),
+//       ...((OPENAI_API_TYPE === 'openai' && OPENAI_ORGANIZATION) && {
+//         'OpenAI-Organization': OPENAI_ORGANIZATION,
+//       }),
+//     },
+//     method: 'POST',
+//     body: JSON.stringify({
+//       ...(OPENAI_API_TYPE === 'openai' && {model: model.id}),
+//       messages: [
+//         {
+//           role: 'system',
+//           content: systemPrompt,
+//         },
+//         ...messages,
+//       ],
+//       max_tokens: 1000,
+//       temperature: temperature,
+//       stream: true,
+//     }),
+//   });
+
 
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
-
   if (res.status !== 200) {
     const result = await res.json();
-    
+    console.log('异常状态返回',res.status,result.data)
+
      // Make this code easier to read, including by adding comments, renaming variables, and/or reorganizing the code.
     if (result.error) {
       throw new OpenAIError(
@@ -106,7 +112,7 @@ export const OpenAIStream = async (
       );
     }
   }
-
+  console.log('status:--------------',res.status)
   const stream = new ReadableStream({
     async start(controller) {
       const onParse = (event: ParsedEvent | ReconnectInterval) => {
@@ -129,7 +135,7 @@ export const OpenAIStream = async (
       };
 
       const parser = createParser(onParse);
-
+      console.log('---------------',res)
       for await (const chunk of res.body as any) {
         parser.feed(decoder.decode(chunk));
       }
